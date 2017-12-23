@@ -6,7 +6,7 @@
 *.exe
 *.o
 *.so
-.pyc
+*.pyc
 
 # Packages #
 ############
@@ -42,4 +42,5 @@ Thumbs.db
 *.gch
 
 *.rope*
-.tags
+*.tags
+*.vscode

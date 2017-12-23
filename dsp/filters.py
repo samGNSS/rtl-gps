@@ -1,15 +1,39 @@
 import numpy as np
 
-class arbResampler():
-    def __init__():
+
+class baseFilter():
+    pass
+
+
+"""
+Batch process samples with an fir filter
+"""
+class firFilter():
+    def __init__(self):
         pass
 
-    def process():
+
+class iirFilter():
+    def __init__(self):
         pass
+
+
+class arbResampler():
+    def __init__(self):
+        pass
+
+    def process(self):
+        pass
+
 
 class tuneFilterResample():
-    def __init__():
+    def __init__(self):
         pass
 
-    def process():
+    def process(self):
+        pass
+
+
+class channelizer():
+    def __init__(self):
         pass

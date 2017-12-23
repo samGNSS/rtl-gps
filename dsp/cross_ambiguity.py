@@ -1,8 +1,9 @@
 import numpy as np
-import matplotlib.pyplot as plt
 import scipy.signal as signal
 
-
+"""
+Class to manage calculating the cross ambiguity function between any two signals
+"""
 class crossAmbiguity():
     def __init__(self, sampleRate, numFrequencyBins, numTimeBins, fftSize=1024):
         self.numTimeBins = numTimeBins
