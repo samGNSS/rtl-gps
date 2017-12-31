@@ -2,7 +2,6 @@
 Some usefull fuction decorators
 """
 
-
 # Decorator to insure a function is thread safe
 def threadsafe(lock):
     def wrapper1(func):

@@ -1,8 +1,5 @@
 #!/home/sam/miniconda3/bin/ipython
-
-import argparse
-import logging
-from multiprocessing import Process, Lock
+from multiprocessing import Process, Lock, Value
 from bokeh.layouts import gridplot
 import numpy as np
 from rtlsdr import RtlSdr
@@ -11,20 +8,20 @@ from gui.plotTypes import base_plot
 from gui.rtl_gps_app import rtlGpsApp
 from util.decorators import threadsafe
 
-from dsp.cross_ambiguity import crossAmbiguity
-from dsp.detectors import CA_CFAR
+from dsp.cross_ambiguity import CrossAmbiguity
+from dsp.detectors import CaCFAR
 
 # get a global mutex lock
 lock = Lock()
-
+stopFlag = Value('b', False)
 
 ##############
 # Parameters #
 ##############
-center_freq = 101.1e6
+center_freq = 960e6
 samp_rate = 2.048e6
 gain = 10
-fft_size = 512  # output size of fft, the input size is the samples_per_batch
+fft_size = 1024  # output size of fft, the input size is the samples_per_batch
 waterfall_samples = 50  # number of rows of the waterfall
 samples_in_time_plots = fft_size
 
@@ -32,9 +29,11 @@ sdr = RtlSdr()
 sdr.center_freq = center_freq
 sdr.sample_rate = samp_rate
 sdr.freq_correction = 60
-sdr.gain = 'auto'
+sdr.gain = 20
 
-cfar = CA_CFAR(5, 10, 10)
+#DSP processors
+cfar = CaCFAR(5, 10, 10)
+# ambg = crossAmbiguity()
 
 
 ##############
@@ -44,7 +43,7 @@ cfar = CA_CFAR(5, 10, 10)
 # Frequncy Sink (line plot)
 fft_plot = base_plot('Freq [MHz]', 'PSD [dB]', 'Frequency  Sink', disable_horizontal_zooming=True)
 f = (np.linspace(-samp_rate / 2.0, samp_rate / 2.0, fft_size) + center_freq) / 1e6
-fft_plot._input_buffer['y'] = np.zeros(fft_size) # this buffer is how the DSP sends data to the plot in realtime
+fft_plot._input_buffer['y'] = np.zeros(fft_size)
 fft_plot._input_buffer['T'] = np.zeros(fft_size)
 fft_line = fft_plot.line(f, np.zeros(fft_size), color="aqua", line_width=1) # set x values but use dummy values for y
 fftThres_line = fft_plot.line(f, np.zeros(fft_size), color="green", line_width=1)
@@ -91,16 +90,17 @@ def plot_update():
     timeQ_line.data_source.data['y'] = time_plot._input_buffer['q'] # send most recent Q to time sink
     iq_data.data_source.data = {'x': iq_plot._input_buffer['i'], 'y': iq_plot._input_buffer['q']} # send I and Q in one step using dict
     fft_line.data_source.data['y'] = fft_plot._input_buffer['y'] # send most recent psd to freq sink
-    fftThres_line.data_source['y'] = fft_plot._input_buffer['T']
+    fftThres_line.data_source.data['y'] = fft_plot._input_buffer['T']
     waterfall_data.data_source.data['image'] = waterfall_plot._input_buffer['waterfall'] # send waterfall 2d array to waterfall sink
 
 
 # Function that processes each batch of samples that comes in (currently, all DSP goes here)
 @threadsafe(lock)
-def process_samples(samples, rtlsdr_obj):
+def process_samples(samples, _):
     # DSP
     PSD = 10.0 * np.log10(np.abs(np.fft.fftshift(np.fft.fft(samples, fft_size)/float(fft_size)))**2) # calcs PSD
     thresh, _ = cfar.process(PSD)
+    # thresh = np.zeros_like(PSD)
     
     # updating buffers
     waterfall = waterfall_plot._input_buffer['waterfall'][0] # pull waterfall from buffer
@@ -116,13 +116,17 @@ def process_samples(samples, rtlsdr_obj):
 
 
 # Function that runs asynchronous reading from the RTL, and is a blocking function
-def start_sdr():
+def start_sdr(flag):
     while True:
-        sdr.read_samples_async(process_samples, 1024)
+        if flag.value:
+            break
+        else:
+            sdr.read_samples_async(process_samples, fft_size)
+    print("Done")
 
 
 # Start SDR sample processign as a separate thread
-p = Process(target=start_sdr)
+p = Process(target=start_sdr, args=(stopFlag,))
 p.start()
 
 ################
@@ -132,4 +136,12 @@ myapp = rtlGpsApp() # start new pysdr app
 myapp.makeDoc(plots, plot_update) # widgets, plots, periodic callback function, theme
 myapp.makeBokehServer()
 myapp.makeWebServer()
-myapp.startServer() # start web server.  blocking
+
+#run app
+try:
+    myapp.startServer() # start web server.  blocking
+except KeyboardInterrupt:
+    stopFlag.value = True
+    p.join()
+    sdr.close()
+

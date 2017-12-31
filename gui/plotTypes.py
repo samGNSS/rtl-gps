@@ -3,7 +3,7 @@ Collection of plot types
 """
 
 from bokeh.plotting import Figure
-from bokeh.models import WheelZoomTool, BoxZoomTool, ResetTool, SaveTool # all the tools we want- reference http://bokeh.pydata.org/en/0.10.0/docs/reference/models/tools.html
+from bokeh.models import WheelZoomTool, BoxZoomTool, ResetTool, SaveTool 
 from bokeh.models import Range1d
 from multiprocessing import Manager
 
@@ -42,7 +42,7 @@ def base_plot(x_label, y_label, title, **kwargs):
     plot.toolbar.logo = None
 
     # add more intuitive functions to set x and y ranges
-    def _set_x_range(min_x, max_x): # without the underscore it wont work, bokeh/core/has_props.py overloads __setattr__ to intercept attribute setting that is not private
+    def _set_x_range(min_x, max_x):
         plot.x_range = Range1d(min_x, max_x)
     def _set_y_range(min_y, max_y):
         plot.y_range = Range1d(min_y, max_y)
