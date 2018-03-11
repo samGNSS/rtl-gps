@@ -87,7 +87,7 @@ class BaseFilter():
             [np.array, complex float] -- Complex filtered samples
 
         """
-        return signal.fftconvolve(data, self._taps, 'valid')
+        return signal.fftconvolve(data, self._taps, 'full')
 
 
 class InterpolatingFir(BaseFilter):
@@ -302,7 +302,7 @@ class TuneFilterResample(ArbResampler):
     @property
     def blockLength(self):
         """Number of samples processed
-        
+
         Returns:
             [float] -- block length of the resampler
         """
@@ -365,6 +365,8 @@ class Channelizer():
  
     @property
     def sampleRate(self):
+        """Sample rate of the filter
+        """
         return [filter.sampleRate for filter in self.filters]
 
     @sampleRate.setter
@@ -373,6 +375,8 @@ class Channelizer():
 
     @property
     def filtCutoff(self):
+        """Cutoff  frequency of the filter
+        """
         return [filter.filtCutoffFreq for filter in self.filters]
 
     @filtCutoff.setter
@@ -381,6 +385,8 @@ class Channelizer():
 
     @property
     def decimationRate(self):
+        """Decimation rate of the filter
+        """
         return [filter.decimationRate for filter in self.filters]
 
     @decimationRate.setter
@@ -389,6 +395,8 @@ class Channelizer():
 
     @property
     def interpolationRate(self):
+        """Interpolation rate
+        """
         return [filter.interpolationRate for filter in self.filters]
 
     @interpolationRate.setter
@@ -397,6 +405,8 @@ class Channelizer():
 
     @property
     def blockLength(self):
+        """Block length of the filter
+        """
         return [filter.blockLength for filter in self.filters]
 
     @blockLength.setter
@@ -404,6 +414,20 @@ class Channelizer():
         self.filters[value[0]].blockLength = value[1]
 
     def addChannels(self, sampRate, filtCutoffFreq, deciRate, interRate, tunerFreq, blockLength, windowType="blackman", numTaps=51):
+        """Add a channel to the filter bank
+        
+        Arguments:
+            sampRate {[type]} -- [description]
+            filtCutoffFreq {[type]} -- [description]
+            deciRate {[type]} -- [description]
+            interRate {[type]} -- [description]
+            tunerFreq {[type]} -- [description]
+            blockLength {[type]} -- [description]
+        
+        Keyword Arguments:
+            windowType {[type]} -- [description] (default: {"blackman"})
+            numTaps {[type]} -- [description] (default: {51})
+        """
         for fcut, fd, fi, fc, bl in zip(filtCutoffFreq, deciRate, interRate, tunerFreq, blockLength):
             self.filters.append(TuneFilterResample(sampRate, fcut, fd, fi, fc, bl, windowType, numTaps))
 

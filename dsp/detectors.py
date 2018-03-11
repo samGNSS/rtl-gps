@@ -1,10 +1,9 @@
 import numpy as np
 
-"""
-Cell averaging constant false alarm rate detector
-"""
 class CaCfar():
-    def __init__(self, numGuardBins, numAvgBins, scale = 0):
+    """Cell averaging constant false alarm rate detector
+    """
+    def __init__(self, numGuardBins, numAvgBins, scale=0):
         self.back = np.arange(-numAvgBins, 0, 1)
         self.front = np.arange(numAvgBins)
         self.numGuardBins = numGuardBins
@@ -17,6 +16,12 @@ class CaCfar():
         self.reverseMean = 0
 
     def _initCells(self, data):
+        """Initalize the averaging cells
+        
+        Arguments:
+            data {np.array} -- 1d array of floats
+        """
+
         self.forwardCells = (self.front + self.numGuardBins) % len(data)
         self.reverseCells = (self.back - self.numGuardBins) % len(data)
 
@@ -24,6 +29,17 @@ class CaCfar():
         self.reverseMean = data[self.reverseCells].sum()
 
     def process(self, data):
+        """Process the data
+
+        [description]
+
+        Arguments:
+            data {np.array} -- 1d array of floats
+
+        Returns:
+            threshold and detection indices -- [description]
+        """
+
         # init
         thresh = np.zeros_like(data)
         dets = np.zeros_like(data, dtype=bool)
@@ -41,9 +57,9 @@ class CaCfar():
             self.forwardMean -= data[self.forwardCells[0]]
             self.reverseMean -= data[self.reverseCells[0]]
 
-            self.forwardCells += 1 
+            self.forwardCells += 1
             self.forwardCells %= numPoints
-            
+
             self.reverseCells += 1
             self.reverseCells %= numPoints
 
@@ -52,11 +68,11 @@ class CaCfar():
 
         return thresh, dets
 
-"""
-Ordered statistic constant false alarm rate detector
-"""
+
 class OsCfar():
-    def __init__(self, numGuardBins, numAvgBins, osElement, scale = 0):
+    """Ordered statistic constant false alarm rate detector
+    """
+    def __init__(self, numGuardBins, numAvgBins, osElement, scale=0):
         self.back = np.arange(-numAvgBins, 0, 1)
         self.front = np.arange(numAvgBins)
         self.numGuardBins = numGuardBins
@@ -75,6 +91,17 @@ class OsCfar():
         self.cells = np.sort(np.array([data[self.forwardCells], data[self.reverseCells]]).flatten())
 
     def process(self, data):
+        """[summary]
+
+        [description]
+
+        Arguments:
+            data {[type]} -- [description]
+
+        Returns:
+            [type] -- [description]
+        """
+
         # init
         thresh = np.zeros_like(data)
         dets = np.zeros_like(data, dtype=bool)
@@ -89,9 +116,9 @@ class OsCfar():
             # Check if we need to declare a detection
             dets[idx] = cut > thresh[idx]
 
-            self.forwardCells += 1 
+            self.forwardCells += 1
             self.forwardCells %= numPoints
-            
+
             self.reverseCells += 1
             self.reverseCells %= numPoints
 
